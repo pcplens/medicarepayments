@@ -185,7 +185,6 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}.shell,main,.workspace>
 .policy-table tbody th small{display:block;font-weight:400;color:var(--muted);font-size:10px}
 .policy-table td.changed{font-weight:700;color:var(--ink)}
 .policy-table td.same{color:var(--muted)}
-.policy-table td.repeat{font-weight:400;color:var(--muted)}
 .policy-table .rvu-components{margin:8px 0 0}
 .policy-table .rvu-components table{margin-top:4px}
 .policy-table .hint{margin:6px 0 0}
