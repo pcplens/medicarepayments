@@ -1,11 +1,11 @@
 export const DATA_VERSION='2026-11-05.4';
-export const ENGINE_VERSION='2026-11-06.2';
+export const ENGINE_VERSION='2026-11-06.3';
 export const YEARS=Array.from({length:36},(_,i)=>1992+i);
 export const CODES=['99212','99213','99214','99215','99202','99203','99204','99205'];
-export const DEFAULT_MIX={'99212':5.56,'99213':36.11,'99214':44.44,'99215':8.89,'99202':.83,'99203':1.39,'99204':2.22,'99205':.56};
+export const DEFAULT_MIX={'99212':6,'99213':36,'99214':44,'99215':9,'99202':1,'99203':1,'99204':2,'99205':1};
 // qp: Qualifying APM Participant (sets the 2026+ conversion factor track).
 // aco: participates in an MSSP or LEAD ACO (bills B2 instead of B1 in 2027). The two are independent.
-export const defaultState=()=>({qp:false,aco:false,visits:18,days:20,mix:{...DEFAULT_MIX},complexity:25});
+export const defaultState=()=>({qp:false,aco:false,visits:20,days:22,mix:{...DEFAULT_MIX},complexity:25});
 export const trackFor=s=>s.qp?'qp':'nonqp';
 export const modifierFor=s=>s.aco?'B2':'B1';
 // CY2027 PFS final rule: B1 = 16% and B2 = 32% of the total RVUs of the base E/M service on the claim.
@@ -39,16 +39,21 @@ export function calculate(data,s){
  return {valid:true,track,modifier,years,cfs,latest:years.at(-1),base:years[0]};
  }catch(e){return {valid:false,errors:[e.message]};}
 }
-// 2026 → 2027 monthly change, split into three parts that add up exactly to the total:
-// conversion factor (2026 RVUs repriced at the 2027 CF), RVU revaluation (2027 vs 2026 RVUs at the 2027 CF),
-// and complexity coding (2027 B1/B2 vs G2211 repriced at the 2027 CF).
+// CY2027 PFS final rule, Tables D-B1/D-B2: the 2026 CFs without the one-year 2.5% statutory increase that
+// applied only to 2026. The 2027 CF = this × the 2027 update (QP +0.75%, non-QP +0.25%) × 0.9988 budget neutrality.
+export const CF_2026_WITHOUT_ONE_YEAR_INCREASE={nonqp:32.5863,qp:32.7488};
+// 2026 → 2027 monthly change, split into four parts that add up exactly to the total:
+// the expiring 2026 one-year increase (2026 RVUs, incl. G2211, at the CF without it), the 2027 CF update and
+// budget neutrality (same RVUs at the 2027 CF), RVU revaluation (2027 vs 2026 RVUs at the 2027 CF),
+// and complexity coding (2027 B1/B2 vs G2211 at the 2027 CF).
 export function changeBreakdown(data,s){
  const r=calculate(data,s);if(!r.valid)return null;
- const track=r.track,y26=r.years.find(y=>y.year===2026),y27=r.latest,cf27=y27.cf,uptake=s.complexity/100;let cfBase=0,cfComplexity=0;
- for(const code of CODES){const monthly=s.visits*s.days*s.mix[code]/100,iv=intervalsFor(data,2026,track,code);cfBase+=monthly*weighted(iv,x=>cents(x.pricing_rvu*cf27));cfComplexity+=monthly*uptake*weighted(iv,x=>cents(x.g2211_rvu*cf27));}
- const conversionFactor=cfBase-y26.baseMonthly+cfComplexity-y26.complexityMonthly,revaluation=y27.baseMonthly-cfBase,coding=y27.complexityMonthly-cfComplexity,total=y27.nominalMonthly-y26.nominalMonthly;
+ const track=r.track,y26=r.years.find(y=>y.year===2026),y27=r.latest,cf27=y27.cf,cfMid=CF_2026_WITHOUT_ONE_YEAR_INCREASE[track],uptake=s.complexity/100;
+ const at=cf=>CODES.reduce((a,code)=>{const monthly=s.visits*s.days*s.mix[code]/100,iv=intervalsFor(data,2026,track,code);return {base:a.base+monthly*weighted(iv,x=>cents(x.pricing_rvu*cf)),complexity:a.complexity+monthly*uptake*weighted(iv,x=>cents(x.g2211_rvu*cf))};},{base:0,complexity:0});
+ const mid=at(cfMid),end=at(cf27),sum=p=>p.base+p.complexity;
+ const oneYearIncreaseExpires=sum(mid)-y26.nominalMonthly,cfUpdate=sum(end)-sum(mid),revaluation=y27.baseMonthly-end.base,coding=y27.complexityMonthly-end.complexity,total=y27.nominalMonthly-y26.nominalMonthly;
  const pct=(a,b)=>b?a/b-1:null,adjusted=k=>y26.nominalMonthly*y27.indices[k].factor/y26.indices[k].factor;
- return {from:y26,to:y27,modifier:r.modifier,cf:{from:y26.cf,to:cf27,change:pct(cf27,y26.cf)},total,totalPct:pct(y27.nominalMonthly,y26.nominalMonthly),parts:{conversionFactor,revaluation,coding},
+ return {from:y26,to:y27,modifier:r.modifier,cf:{from:y26.cf,withoutIncrease:cfMid,to:cf27,change:pct(cf27,y26.cf),expiry:pct(cfMid,y26.cf),update:pct(cf27,cfMid)},total,totalPct:pct(y27.nominalMonthly,y26.nominalMonthly),parts:{oneYearIncreaseExpires,cfUpdate,revaluation,coding},
   inflation:Object.fromEntries(['CPI','MEI'].map(k=>[k,{from:adjusted(k),change:y27.nominalMonthly-adjusted(k),pct:pct(y27.nominalMonthly,adjusted(k)),rate:y27.indices[k].factor/y26.indices[k].factor-1}]))};
 }
 export function eventsFor(data,s){
