@@ -201,3 +201,52 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}.shell,main,.workspace>
 .chart-tooltip .tip-line{display:block;margin-top:2px}
 @media(max-width:600px){.event-panel{padding:12px 10px}.event-panel-head h3{font-size:16px}}
 @media(max-width:480px){.policy-table td .from{display:block;font-weight:400;color:var(--muted);font-size:10px}.policy-table td .arr{display:none}.policy-table td{vertical-align:bottom}}
+/* Collapsible sections: each card is a <details> whose <summary> is the header (chevron, title, and a one-line summary shown while closed). */
+.results-column .card{--px:24px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:0;margin:0 0 16px}
+.fold>summary{list-style:none;color:var(--ink)}
+.fold>summary::-webkit-details-marker{display:none}
+.fold-head{display:flex;align-items:flex-start;gap:12px;min-height:44px;padding:18px var(--px);cursor:pointer;border-radius:10px;-webkit-tap-highlight-color:transparent}
+.fold-head:focus-visible{outline:3px solid var(--ink);outline-offset:-3px}
+.fold-titles{display:flex;flex-direction:column;gap:3px;flex:1 1 auto;min-width:0}
+.fold-head h2{font-size:21px;margin:0}
+.fold-head.minor h2{font-size:17px}
+.fold-sum{font-size:12px;line-height:1.55;color:var(--muted);overflow-wrap:anywhere}
+.fold[open]>summary .fold-sum{display:none}
+.chev{flex:0 0 28px;height:28px;display:grid;place-items:center;border:1px solid var(--border);border-radius:50%;background:var(--paper);margin-top:1px;transition:border-color .12s,background-color .12s}
+.chev::before{content:'';width:7px;height:7px;border-right:2px solid var(--ink);border-bottom:2px solid var(--ink);transform:translateY(-2px) rotate(45deg);transition:transform .15s ease}
+.fold:not([open])>summary .chev::before{transform:translateX(-1px) rotate(-45deg)}
+.fold-head:hover .chev{border-color:var(--ink);background:var(--panel)}
+.fold-head.minor{padding-top:14px;padding-bottom:14px}
+.fold-head.minor .chev{margin-top:-1px}
+.fold-body{padding:0 var(--px) 22px}
+.fold-body>.scope-note:first-child,.fold-body>.range-picker:first-child{margin-top:0}
+.track-card .fold-body>.step:first-child{margin-top:4px}
+/* Sub-sections inside a card */
+.subfold{border-top:1px solid var(--line);margin-top:14px}
+.subfold>.fold-head{padding:10px 0;gap:10px;border-radius:6px}
+.subfold>.fold-head h3{font-size:14px;line-height:1.5;margin:0}
+.subfold .chev{flex-basis:24px;height:24px;margin-top:0}
+.subfold .chev::before{width:6px;height:6px}
+.subfold-body{padding:0 0 4px}
+.subfold+.subfold{margin-top:0}
+.subfold .drivers{margin-top:-4px}
+.subfold .combo-table table{margin-top:0}
+.chart-legend+.subfold{margin-top:12px}
+.event-list ul{margin:0}
+.subfold .chart-guide{margin-top:0}
+.subfold .chart-caveats{margin:6px 0 4px}
+.fold-body.methodology{border:0;margin:0;padding-top:0;font-size:12px}
+.fold-body.methodology>h3:first-child{margin-top:0}
+.actions{margin:4px 0 16px}
+.actions+#share-fallback{margin:-6px 0 16px}
+.minor-card{margin-bottom:12px}
+/* Sidebar: the visit-percentage editor shows its top shares while closed */
+.mix-editor>summary{flex-wrap:wrap;row-gap:0}
+.mix-brief{flex-basis:100%;padding-left:23px;font-size:11px;font-weight:400;color:var(--muted);line-height:1.4}
+.mix-brief:empty,.mix-editor[open] .mix-brief{display:none}
+@media(max-width:1180px){.results-column .card{--px:18px}}
+@media(max-width:1100px) and (min-width:761px){.results-column .card{--px:14px}}
+@media(max-width:760px){.results-column .card{--px:14px;border-radius:8px;margin-bottom:14px}.fold-head{padding-top:14px;padding-bottom:14px;gap:10px}.fold-head h2{font-size:19px}.fold-head.minor h2{font-size:16px}.chev{flex-basis:26px;height:26px}.subfold>.fold-head{min-height:44px}.actions .secondary{flex:1 1 auto}}
+@media(max-width:350px){.results-column .card{--px:10px}}
+@media(prefers-reduced-motion:reduce){.chev,.chev::before{transition:none}}
+#change-content+.subfold{border-top:0;margin-top:2px}
