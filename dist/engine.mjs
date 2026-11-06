@@ -26,7 +26,9 @@ export function validate(s){
  if(Math.abs(sum-100)>.005)e.push(`Visit mix totals ${sum.toFixed(2)}%. Adjust shares or balance to 100%.`);
  return [...new Set(e)];
 }
-export function balanceMix(mix){const total=CODES.reduce((a,c)=>a+Math.max(0,Number(mix[c])||0),0);if(!total)return {...DEFAULT_MIX};const m=Object.fromEntries(CODES.map(c=>[c,Math.round(Math.max(0,Number(mix[c])||0)/total*10000)/100]));const largest=CODES.reduce((a,c)=>m[c]>m[a]?c:a,CODES[0]);m[largest]=Math.round((m[largest]+100-Object.values(m).reduce((a,b)=>a+b,0))*100)/100;return m;}
+// Scale every share in proportion so the mix totals exactly 100, in whole percentages. Each share is floored,
+// then the leftover points go to the shares with the largest remainders (ties: the larger share, then code order).
+export function balanceMix(mix){const vals=Object.fromEntries(CODES.map(c=>[c,Math.max(0,Number(mix[c])||0)])),total=Object.values(vals).reduce((a,b)=>a+b,0);if(!total)return {...DEFAULT_MIX};const exact=Object.fromEntries(CODES.map(c=>[c,vals[c]/total*100])),m=Object.fromEntries(CODES.map(c=>[c,Math.floor(exact[c]+1e-9)]));let left=100-Object.values(m).reduce((a,b)=>a+b,0);for(const c of [...CODES].sort((a,b)=>(exact[b]-m[b])-(exact[a]-m[a])||exact[b]-exact[a]||CODES.indexOf(a)-CODES.indexOf(b))){if(left<=0)break;m[c]++;left--;}return m;}
 export function conversionSeries(data,track){return YEARS.map(year=>{const r=data.annual.find(r=>r.year===year&&r.track===track);if(!r)throw Error(`Missing CF coverage: ${year}`);const indices=Object.fromEntries(['MEI','CPI'].map(s=>[s,data.indices.find(i=>i.year===year&&i.series===s)]));if(Object.values(indices).some(i=>!i||!finite(i.factor)||i.factor<=0))throw Error(`Missing deflator: ${year}`);return {year,nominal:r.cf,MEI:r.cf/indices.MEI.factor,CPI:r.cf/indices.CPI.factor,indices};});}
 // Day-weighted annual amount from effective-period intervals, rounding each claim line to cents first.
 const weighted=(intervals,line)=>intervals.reduce((a,r)=>a+line(r)*r.interval_days,0)/intervals[0].year_days;
