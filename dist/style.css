@@ -164,3 +164,5 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}.shell,main,.workspace>
 .chart-legend .history-key{margin-top:0}
 .chart-tooltip .tip-total{color:var(--muted);font-size:11px}
 .chart-tooltip .tip-total strong{font-weight:600}
+.change-table{overflow-x:auto;max-width:100%}
+@media(max-width:400px){.change-table th,.change-table td{padding:8px 2px;font-size:11px}.change-table th:first-child{width:28%}}

@@ -1,5 +1,5 @@
 export const DATA_VERSION='2026-11-05.4';
-export const ENGINE_VERSION='2026-11-06.8';
+export const ENGINE_VERSION='2026-11-06.9';
 export const YEARS=Array.from({length:36},(_,i)=>1992+i);
 export const CODES=['99212','99213','99214','99215','99202','99203','99204','99205'];
 export const DEFAULT_MIX={'99212':6,'99213':36,'99214':44,'99215':9,'99202':1,'99203':1,'99204':2,'99205':1};
@@ -33,7 +33,7 @@ export function validate(s){
  if(!finite(s.visits)||s.visits<0||s.visits>1000)e.push('Visits per day must be between 0 and 1,000.');
  if(!Number.isInteger(s.days)||s.days<1||s.days>31)e.push('Working days must be a whole number from 1 to 31.');
  if(!finite(s.complexity)||s.complexity<0||s.complexity>100)e.push('Complexity billing must be between 0% and 100%.');
- if(!s.apcm||Object.keys(s.apcm).length!==APCM_CODES.length||APCM_CODES.some(c=>!finite(s.apcm[c])||s.apcm[c]<0||s.apcm[c]>100000))e.push('APCM patients must be between 0 and 100,000 for each level.');
+ if(!s.apcm||Object.keys(s.apcm).length!==APCM_CODES.length||APCM_CODES.some(c=>!finite(s.apcm[c])||s.apcm[c]<0||s.apcm[c]>10000))e.push('APCM patients must be between 0 and 10,000 for each level.');
  let sum=0;for(const c of CODES){if(!finite(s.mix?.[c])||s.mix[c]<0||s.mix[c]>100)e.push('Each visit share must be between 0% and 100%.');else sum+=s.mix[c];}
  if(Math.abs(sum-100)>.005)e.push(`Visit mix totals ${sum.toFixed(2)}%. Adjust shares or balance to 100%.`);
  return [...new Set(e)];
