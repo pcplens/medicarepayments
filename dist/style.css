@@ -53,8 +53,6 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}.shell,main,.workspace>
 .drivers strong{white-space:nowrap;font-size:14px}
 .drivers .down{color:var(--accent)}
 .change-help{margin:14px 0 0}
-.comparison-table tr.change td,.comparison-table tr.change th{font-size:12px;background:var(--panel)}
-.year-card .change{background:var(--panel)}
 @media(max-width:760px){.change-card{padding:18px 14px}.change-table th,.change-table td{padding:9px 3px;font-size:12px}.change-table th:first-child{width:30%}.change-headline strong{font-size:23px}}
 .panel-heading .share-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
 .range-toggle{display:inline-flex}
