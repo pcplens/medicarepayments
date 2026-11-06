@@ -1,0 +1,10 @@
+{
+  "name": "medicare-payments",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "test:browser": "node tests/browser.cjs",
+    "preview": "python3 -m http.server 8878 --bind 127.0.0.1 --directory dist"
+  }
+}

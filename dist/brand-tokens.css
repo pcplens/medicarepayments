@@ -1,0 +1,132 @@
+/*
+ * PCP Lens brand tokens v2.4 (2026-10-31; dark default + light theme). Source: design/profiles/pcp-lens.md
+ * Supersedes pcp-lens-dark.tokens.css. Not for VBCLens.
+ */
+:root {
+  /* color roles */
+  --pcplens-navy: #0E1B31;        /* base: every slide and video frame */
+  --pcplens-slate: #4C6178;       /* surface: cards, columns, chart panels */
+  --pcplens-ice: #E5EEF2;         /* text */
+  --pcplens-mist: #B9C6D1;        /* secondary text; >=24px on slate */
+  --pcplens-coral: #E45A47;       /* brand mark: fills, logo, on light grounds */
+  --pcplens-coral-text: #F08475;  /* brand mark as text or thin stroke on navy */
+  --pcplens-gold: #FFC800;        /* highlight: one per frame, navy text on gold fill */
+  /* semantic slots */
+  --pcplens-mint: #ADFFA3;        /* valence: favorable (named perspective only) */
+  --pcplens-pink: #F8ADBA;        /* valence: unfavorable */
+  --pcplens-sky: #6FA8DC;         /* neutral contrast A; actor */
+  --pcplens-lilac: #EFC8FF;       /* neutral contrast B; actor */
+  --pcplens-teal: #2A8C85;        /* actor (v2.2: darkened for separation from sky) */
+  --pcplens-line: rgba(229, 238, 242, 0.14);  /* hairlines, card edges (decorative) */
+  /* elevation: on navy, lightness is elevation; shadows have nothing to darken */
+  --pcplens-rim: inset 0 1px 0 rgba(229, 238, 242, 0.12);   /* cards and callouts on navy: a lit top edge */
+  --pcplens-shadow-footage: 0 8px 24px rgba(0, 0, 0, 0.35); /* anything over video: lower third, logo bug */
+  --pcplens-text-halo: 6px;                                   /* navy paint-order stroke under labels that cross data */
+  --pcplens-edge: #B9C6D1;        /* 1px edge where a boundary carries meaning */
+  /* ramps */
+  --pcplens-seq-1: #5B7390; --pcplens-seq-2: #7F97B0; --pcplens-seq-3: #B9C6D1; --pcplens-seq-4: #E5EEF2;
+  --pcplens-div-low: #A8CCEE; --pcplens-div-mid: #4C6178; --pcplens-div-high: #EFC8FF;
+  --pcplens-band-opacity: 0.30;
+  --pcplens-dash-projection: 14 10;
+  --pcplens-dash-assumption: 4 8;
+
+  /* type */
+  --pcplens-font-heading: "Merriweather", Georgia, "Times New Roman", serif;
+  --pcplens-font-body: "Montserrat", "Helvetica Neue", Arial, sans-serif;
+
+  /* 1920x1080 frame sizes, px */
+  --pcplens-h1: 80px;
+  --pcplens-h2: 50px;
+  --pcplens-body: 34px;
+  --pcplens-label: 28px;
+  --pcplens-footer: 24px;
+  --pcplens-eyebrow-tracking: 0.14em;
+  --pcplens-safe-margin: 6%;
+  --pcplens-radius: 10px;         /* every box: cards, nodes, callouts, nameplate */
+  --pcplens-radius-sm: 4px;       /* chips, tags, key swatches */
+
+  /* lower third, 1920x1080 */
+  --pcplens-lt-left: 115px;
+  --pcplens-lt-bottom: 160px;       /* clears platform caption zone */
+  --pcplens-lt-radius: var(--pcplens-radius);
+  --pcplens-lt-padding: 22px 48px;
+  --pcplens-lt-name: 54px;        /* Montserrat 500 */
+  --pcplens-lt-cred-scale: 0.74;  /* upright, +0.06em */
+  --pcplens-lt-edge: rgba(229, 238, 242, 0.18);  /* 1px edge over dark footage */
+
+  /* vertical 1080x1920 */
+  --pcplens-v-margin: 72px;
+  --pcplens-v-top: 140px;
+  --pcplens-v-h1: 84px;
+  --pcplens-v-body: 42px;
+  --pcplens-v-footer: 28px;
+}
+
+/* ---------------------------------------------------------------
+   Light theme (v2.4). Same hues, remapped roles, for print, Google
+   Docs, Sheets, handouts and anything read on paper or a white
+   screen. Structural tokens (type, radius, name plate geometry,
+   vertical sizes) are shared and are not repeated here.
+   Contrast computed on paper #F7F8FA / panel #E5EEF2 (WCAG 2.x).
+   --------------------------------------------------------------- */
+:root[data-theme="light"], .pcplens-light {
+  --pcplens-paper: #F7F8FA;       /* page ground */
+  --pcplens-panel: #E5EEF2;       /* callouts, table bands (= dark ice) */
+  --pcplens-ink: #0E1B31;         /* body text (navy)           16.2 / 14.6 */
+  --pcplens-ink-2: #4D5B6A;       /* captions, axes, footers     6.5 /  5.9 */
+  --pcplens-ink-3: #4C6178;       /* slate as muted text         6.0 /  5.4 */
+  --pcplens-line: rgba(14, 27, 49, 0.14); /* hairlines, table rules */
+
+  /* emphasis */
+  --pcplens-coral: #E45A47;       /* rules, line marks, outlines (3.4; graphics only) */
+  --pcplens-coral-text: #8B2F23;  /* coral as text and eyebrows   7.8 /  7.1 */
+  --pcplens-gold: #FFC800;        /* fill only, navy text on it (11.1); never text */
+  --pcplens-gold-text: #7D6100;   /* if gold must be a word       5.5 /  5.0 */
+
+  /* semantic text twins (same slots as dark: valence, neutral contrast, actors) */
+  --pcplens-mint-text: #2D6426;   /* favorable                    6.7 /  6.0 */
+  --pcplens-pink-text: #962C3D;   /* unfavorable                  7.3 /  6.6 */
+  --pcplens-sky-text: #29618E;    /*                              6.2 /  5.6 */
+  --pcplens-lilac-text: #723A88;  /*                              7.4 /  6.7 */
+  --pcplens-teal-text: #1A706A;   /*                              5.5 /  5.0 */
+
+  /* semantic fills: navy text on all (≥10.5); 1px --pcplens-line boundary
+     or a label required, since fills sit at 1.3–1.5 against paper */
+  --pcplens-sky-fill: #B3CDE6;
+  --pcplens-lilac-fill: #E8CEF3;
+  --pcplens-teal-fill: #B3DBD8;
+  --pcplens-mint-fill: #C1E6BC;
+  --pcplens-pink-fill: #F1C6CD;
+
+  /* elevation: conventional shadows are allowed on paper */
+  --pcplens-shadow-paper: 0 1px 0 rgba(14,27,49,.06), 0 4px 14px rgba(14,27,49,.08);
+  --pcplens-text-halo-color: #F7F8FA; /* paint-order stroke under labels crossing data */
+}
+
+/* ---------------------------------------------------------------
+   Print profile (v2.4 round six). A sub-variant of the light theme
+   for paper and PDF: white ground, no shadows, a hairline where a
+   panel needs an edge. Type in points; the raster px scale does not
+   apply to documents.
+   --------------------------------------------------------------- */
+@media print { :root[data-theme="light"], .pcplens-light {
+  --pcplens-paper: #FFFFFF;
+  --pcplens-shadow-paper: none;
+  --pcplens-panel-edge: 0.5pt solid rgba(14, 27, 49, 0.18);
+} }
+:root {
+  /* document type scale, US Letter, points */
+  --pcplens-doc-h1: 22pt;          /* Merriweather 700, 28pt leading */
+  --pcplens-doc-sub: 12pt;         /* Merriweather italic 400 */
+  --pcplens-doc-h2: 13.5pt;        /* Merriweather 700, 18pt leading */
+  --pcplens-doc-body: 11.5pt;      /* Montserrat 400, ~16.7pt leading; 12pt optional for long reports */
+  --pcplens-doc-table: 10pt;       /* Montserrat, tabular figures, approximately 13pt leading */
+  --pcplens-doc-caption: 9pt;    /* eyebrows, exhibit captions, header line */
+  --pcplens-doc-footer: 8.5pt;
+  --pcplens-doc-margin-x: 0.9in;
+  --pcplens-doc-margin-top: 0.8in;
+  --pcplens-doc-margin-bottom: 0.75in;
+  --pcplens-doc-logo-width: 0.95in; /* first page, top right */
+  --pcplens-doc-radius: 6pt;        /* panels and chips on paper (10px at 1080p ≈ 6pt at reading distance) */
+}
+
