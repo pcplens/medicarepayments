@@ -162,3 +162,5 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}.shell,main,.workspace>
 .event-list-item:hover b{text-decoration:underline}
 .chart-legend{margin-top:10px;padding-top:12px;border-top:1px solid var(--line)}
 .chart-legend .history-key{margin-top:0}
+.chart-tooltip .tip-total{color:var(--muted);font-size:11px}
+.chart-tooltip .tip-total strong{font-weight:600}
