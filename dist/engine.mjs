@@ -1,5 +1,5 @@
 export const DATA_VERSION='2026-11-05.4';
-export const ENGINE_VERSION='2026-11-06.10';
+export const ENGINE_VERSION='2026-11-06.11';
 export const YEARS=Array.from({length:36},(_,i)=>1992+i);
 export const CODES=['99212','99213','99214','99215','99202','99203','99204','99205'];
 export const DEFAULT_MIX={'99212':6,'99213':36,'99214':44,'99215':9,'99202':1,'99203':1,'99204':2,'99205':1};
@@ -80,6 +80,17 @@ export function changeBreakdown(data,s){
  const pct=(a,b)=>b?a/b-1:null,adjusted=k=>y26.nominalMonthly*y27.indices[k].factor/y26.indices[k].factor;
  return {from:y26,to:y27,modifier:r.modifier,cf:{from:y26.cf,withoutIncrease:cfMid,to:cf27,change:pct(cf27,y26.cf),expiry:pct(cfMid,y26.cf),update:pct(cf27,cfMid)},total,totalPct:pct(y27.nominalMonthly,y26.nominalMonthly),parts:{oneYearIncreaseExpires,cfUpdate,revaluation,coding,apcm,sequestration},
   inflation:Object.fromEntries(['CPI','MEI'].map(k=>[k,{from:adjusted(k),change:y27.nominalMonthly-adjusted(k),pct:pct(y27.nominalMonthly,adjusted(k)),rate:y27.indices[k].factor/y26.indices[k].factor-1}]))};
+}
+// Any year's change from the year before, split the same way (before 2027's finer conversion-factor split):
+// conversion factor (last year's RVUs and G2211 repriced at this year's CF), RVU revaluation (this year's RVUs,
+// including work adjustments, at this year's CF), complexity coding, APCM and sequestration. Parts add up exactly.
+export function yearBreakdown(data,s,year,r=calculate(data,s)){
+ if(!r.valid||!YEARS.includes(year)||year===YEARS[0])return null;
+ const track=r.track,a=r.years.find(y=>y.year===year-1),b=r.years.find(y=>y.year===year),cf=b.cf,uptake=s.complexity/100;
+ const re=CODES.reduce((acc,code)=>{const monthly=s.visits*s.days*s.mix[code]/100,iv=intervalsFor(data,year-1,track,code);return {base:acc.base+monthly*weighted(iv,x=>cents(x.pricing_rvu*cf)),complexity:acc.complexity+(year-1>=2024?monthly*uptake*weighted(iv,x=>cents((x.g2211_rvu||0)*cf)):0)};},{base:0,complexity:0});
+ const fA=sequestrationFactor(year-1),fB=sequestrationFactor(year);
+ const parts={conversionFactor:(re.base+re.complexity-a.grossBaseMonthly-a.grossComplexityMonthly)*fB,revaluation:(b.grossBaseMonthly-re.base)*fB,coding:(b.grossComplexityMonthly-re.complexity)*fB,apcm:(b.grossApcmMonthly-a.grossApcmMonthly)*fB,sequestration:(fB-fA)*a.grossMonthly};
+ return {year,from:a,to:b,cf:{from:a.cf,to:cf},total:b.nominalMonthly-a.nominalMonthly,totalPct:a.nominalMonthly?b.nominalMonthly/a.nominalMonthly-1:null,parts};
 }
 export function eventsFor(data,s){
  const events=[];

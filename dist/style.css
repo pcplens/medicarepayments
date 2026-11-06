@@ -182,3 +182,10 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}.shell,main,.workspace>
 .policy-background p{margin:6px 0}
 .policy-table .short{display:none;text-decoration:none}
 @media(max-width:480px){.policy-table .long{display:none}.policy-table .short{display:inline}.policy-table table{font-size:10.5px}.policy-table th,.policy-table td{padding:5px 2px}.policy-table tbody th small{font-size:9px}}
+.policy-impact .own dd{font-size:15px}
+.policy-impact .parts{display:block}
+.policy-impact .parts dd{margin-top:4px}
+.policy-impact .parts ul{list-style:none;margin:0;padding:0}
+.policy-impact .parts li{display:flex;justify-content:space-between;gap:12px;font-weight:400;font-size:12px;padding:2px 0;color:var(--muted)}
+.policy-impact .parts li.mine{color:var(--ink);font-weight:700}
+@media(max-width:480px){.policy-table .narrow-hide{display:none}}
