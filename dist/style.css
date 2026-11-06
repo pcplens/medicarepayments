@@ -24,3 +24,62 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}.shell,main,.workspace>
 
 .compact-chart .event-button{display:block;height:44px;min-height:44px;padding:2px 5px;font-size:11px}.compact-chart .event-button b,.compact-chart .event-button span{display:block}.compact-chart .event-button span{max-width:none;font-size:11px}.compact-chart .event-button i{position:absolute;right:3px;top:3px}
 .intro{display:block;padding:26px 0}.comparison-card h2{margin-bottom:18px}.chart-guide{margin-bottom:5px}.inflation-assumptions{font-size:11px;margin:5px 0 11px;color:var(--muted)}#practice-summary{display:none}@media(max-width:760px){#practice-summary{display:block}.intro{padding:22px 0}.comparison-card h2{margin-bottom:16px}}
+
+.field-note{margin:6px 0 14px}
+.preset-option input[type=checkbox]{border-radius:3px}
+.disclosure{font-size:12px;color:var(--muted);margin:0 0 15px}
+.disclosure summary{font-size:11px;min-height:24px}
+#track-help{margin:4px 0 16px}
+#track-help p{margin:8px 0}
+.track-combos{margin:6px 0 0;padding-left:18px}
+.track-combos li{margin:3px 0}
+.change-card{border:1px solid var(--line);background:#fff;border-radius:10px;padding:24px;margin-bottom:23px}
+.change-card h2{font-size:21px}
+.change-headline{margin:14px 0 6px;font-size:15px}
+.change-headline strong{font:700 28px/1.2 var(--pcplens-font-heading);margin-right:4px}
+.change-headline span{color:var(--muted);font-size:13px}
+.change-table table{width:100%;border-collapse:collapse;font-size:14px;margin-top:8px}
+.change-table th,.change-table td{text-align:right;border-bottom:1px solid var(--line);padding:11px 6px;vertical-align:top}
+.change-table th:first-child{text-align:left;width:34%;font-weight:600;font-size:12px}
+.change-table thead th{font-size:12px;color:var(--muted);font-weight:500}
+.change-table small{display:block;color:var(--muted);font-size:11px;font-weight:400;margin-top:2px}
+.change-table tr.total th,.change-table tr.total td{font-weight:700;border-top:2px solid var(--ink)}
+.change-table tr.CPI th{color:var(--CPI)}
+.change-table tr.MEI th{color:var(--MEI)}
+.driver-title{font-size:14px;margin:20px 0 6px}
+.drivers{list-style:none;margin:0;padding:0}
+.drivers li{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;border-bottom:1px solid var(--line);padding:10px 0}
+.drivers small{display:block;color:var(--muted);font-size:11px}
+.drivers strong{white-space:nowrap;font-size:14px}
+.drivers .down{color:var(--accent)}
+.change-help{margin:14px 0 0}
+.comparison-table tr.change td,.comparison-table tr.change th{font-size:12px;background:var(--panel)}
+.year-card .change{background:var(--panel)}
+@media(max-width:760px){.change-card{padding:18px 14px}.change-table th,.change-table td{padding:9px 3px;font-size:12px}.change-table th:first-child{width:30%}.change-headline strong{font-size:23px}}
+.panel-heading .share-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.range-toggle{display:inline-flex}
+.range-toggle button{min-height:36px;border-radius:0}
+.range-toggle button:first-child{border-radius:5px 0 0 5px}
+.range-toggle button:last-child{border-radius:0 5px 5px 0;margin-left:-1px}
+.range-toggle button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.caveat-band{fill:var(--panel);opacity:.8}
+.caveat-label,.axis-note{fill:var(--muted);font:10px Montserrat,sans-serif}
+.year-point{fill:var(--ink)}
+.hover-line{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 3}
+.hover-target{fill:transparent;cursor:crosshair}
+.chart-tooltip{position:absolute;z-index:3;pointer-events:none;background:var(--paper);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;line-height:1.5;box-shadow:0 2px 8px rgba(0,0,0,.12);white-space:nowrap}
+.chart-tooltip b{display:block}
+.chart-tooltip span{display:block}
+.chart-tooltip small{color:var(--muted)}
+.chart-tooltip .CPI{color:var(--CPI)}
+.chart-tooltip .MEI{color:var(--MEI)}
+.chart-caveats,.table-note{font-size:11px;line-height:1.7;color:var(--muted);margin:10px 0 0}
+.policy-impact{background:var(--panel);border-radius:6px;padding:12px 14px;margin:14px 0}
+.policy-impact h3{font-size:13px;margin-bottom:6px}
+.policy-impact dl{margin:0}
+.policy-impact dl>div{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding:6px 0}
+.policy-impact dt{font-size:12px}
+.policy-impact dd{margin:0;font-weight:600}
+.policy-impact small{color:var(--muted);font-weight:400;margin-left:4px}
+.policy-impact .hint{margin:8px 0 0}
+@media(max-width:760px){.panel-heading .share-wrap{align-items:flex-start}}
