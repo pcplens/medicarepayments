@@ -166,3 +166,19 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}.shell,main,.workspace>
 .chart-tooltip .tip-total strong{font-weight:600}
 .change-table{overflow-x:auto;max-width:100%}
 @media(max-width:400px){.change-table th,.change-table td{padding:8px 2px;font-size:11px}.change-table th:first-child{width:28%}}
+.policy-summary{font-size:15px;line-height:1.6;margin:4px 0 14px}
+.policy-h{font-size:13px;margin:0 0 6px}
+.policy-table{overflow-x:auto;margin:0 0 12px}
+.policy-table table{width:100%;border-collapse:collapse;font-size:12px}
+.policy-table caption{text-align:left;font-size:11px;color:var(--muted);padding:0 0 6px}
+.policy-table th,.policy-table td{text-align:right;padding:6px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+.policy-table th:first-child{text-align:left;font-weight:600}
+.policy-table thead th{font-weight:500;color:var(--muted);font-size:11px;white-space:normal}
+.policy-table tbody th small{display:block;font-weight:400;color:var(--muted);font-size:10px}
+.policy-table td.changed{font-weight:700;color:var(--ink)}
+.policy-table td.same{color:var(--muted)}
+.policy-table .hint{margin:6px 0 0}
+.policy-background{margin:6px 0 10px}
+.policy-background p{margin:6px 0}
+.policy-table .short{display:none;text-decoration:none}
+@media(max-width:480px){.policy-table .long{display:none}.policy-table .short{display:inline}.policy-table table{font-size:10.5px}.policy-table th,.policy-table td{padding:5px 2px}.policy-table tbody th small{font-size:9px}}
