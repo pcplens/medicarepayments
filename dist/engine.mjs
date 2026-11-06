@@ -1,5 +1,5 @@
 export const DATA_VERSION='2026-11-05.4';
-export const ENGINE_VERSION='2026-11-06.5';
+export const ENGINE_VERSION='2026-11-06.6';
 export const YEARS=Array.from({length:36},(_,i)=>1992+i);
 export const CODES=['99212','99213','99214','99215','99202','99203','99204','99205'];
 export const DEFAULT_MIX={'99212':6,'99213':36,'99214':44,'99215':9,'99202':1,'99203':1,'99204':2,'99205':1};
@@ -16,6 +16,13 @@ export const trackFor=s=>s.qp?'qp':'nonqp';
 export const modifierFor=s=>s.program==='aco'?'B2':'B1';
 // CY2027 PFS final rule: B1 = 16% and B2 = 32% of the total RVUs of the base E/M service on the claim.
 export const MODIFIER_UPLIFT={B1:.16,B2:.32};
+// Medicare FFS sequestration (Budget Control Act): 2% off Medicare's payment, taken after coinsurance and deductible, so the
+// patient's 20% share is not reduced. Day-weighted annual rate: began April 1, 2013; suspended May 1, 2020 – March 31, 2022;
+// 1% April 1 – June 30, 2022; 2% from July 1, 2022 (scheduled through FY2032). Sources: CRS R45106; MAC notices.
+export const MEDICARE_SHARE=.8;
+export const SEQUESTRATION=Object.fromEntries(Array.from({length:36},(_,i)=>1992+i).map(y=>[y,y<2013?0:y===2013?.02*275/365:y<2020?.02:y===2020?.02*121/366:y===2021?0:y===2022?(.01*91+.02*184)/365:.02]));
+// Share of the allowed amount the practice keeps after sequestration.
+export const sequestrationFactor=year=>1-MEDICARE_SHARE*SEQUESTRATION[year];
 const finite=Number.isFinite,cents=n=>Math.round((n+Number.EPSILON)*100)/100;
 export function validate(s){
  const e=[];if(!PROGRAMS.includes(s.program)||typeof s.qp!=='boolean'||(s.program==='aco'?!TRACKS.includes(s.track):s.track!==null)||(s.program==='none'&&s.qp))e.push('Answer the 2027 track questions.');
@@ -41,9 +48,9 @@ export function calculate(data,s){
  const track=trackFor(s),modifier=modifierFor(s),cfs=conversionSeries(data,track),uptake=s.complexity/100;
  const years=YEARS.map(year=>{const rates=data.annual.filter(r=>r.year===year&&r.track===track);if(rates.length!==8||rates.some(r=>r.covered_days!==r.year_days)||CODES.some(c=>!rates.find(r=>r.code===c)))throw Error(`Incomplete price coverage: ${year}`);
  const rows=CODES.map(code=>{const rate=rates.find(r=>r.code===code);const increment=year===2027?modifierIncrement(data,track,code,modifier):rate.complexity_increment;const dailyVolume=s.visits*s.mix[code]/100;return {...rate,increment,dailyVolume,visitShare:s.mix[code],uptake,dailyBase:dailyVolume*rate.base_fee,dailyComplexity:dailyVolume*uptake*increment};});
- const baseDaily=rows.reduce((a,r)=>a+r.dailyBase,0),complexityDaily=rows.reduce((a,r)=>a+r.dailyComplexity,0),nominalDaily=baseDaily+complexityDaily,nominalMonthly=nominalDaily*s.days;
+ const seq=sequestrationFactor(year),grossBaseDaily=rows.reduce((a,r)=>a+r.dailyBase,0),grossComplexityDaily=rows.reduce((a,r)=>a+r.dailyComplexity,0),grossDaily=grossBaseDaily+grossComplexityDaily,grossMonthly=grossDaily*s.days,baseDaily=grossBaseDaily*seq,complexityDaily=grossComplexityDaily*seq,nominalDaily=grossDaily*seq,nominalMonthly=nominalDaily*s.days;
  const c=cfs.find(r=>r.year===year),indices=c.indices;
- return {year,rows,indices,cf:c.nominal,nominalDaily,nominalMonthly,baseMonthly:baseDaily*s.days,complexityMonthly:complexityDaily*s.days,MEIMonthly:nominalMonthly/indices.MEI.factor,CPIMonthly:nominalMonthly/indices.CPI.factor,MEIDaily:nominalDaily/indices.MEI.factor,CPIDaily:nominalDaily/indices.CPI.factor,modifier:year===2027?modifier:year>=2024?'G2211':'None'};});
+ return {year,rows,indices,cf:c.nominal,sequestration:SEQUESTRATION[year],grossDaily,grossMonthly,grossBaseMonthly:grossBaseDaily*s.days,grossComplexityMonthly:grossComplexityDaily*s.days,nominalDaily,nominalMonthly,baseMonthly:baseDaily*s.days,complexityMonthly:complexityDaily*s.days,MEIMonthly:nominalMonthly/indices.MEI.factor,CPIMonthly:nominalMonthly/indices.CPI.factor,MEIDaily:nominalDaily/indices.MEI.factor,CPIDaily:nominalDaily/indices.CPI.factor,modifier:year===2027?modifier:year>=2024?'G2211':'None'};});
  return {valid:true,track,modifier,years,cfs,latest:years.at(-1),base:years[0]};
  }catch(e){return {valid:false,errors:[e.message]};}
 }
@@ -59,9 +66,12 @@ export function changeBreakdown(data,s){
  const track=r.track,y26=r.years.find(y=>y.year===2026),y27=r.latest,cf27=y27.cf,cfMid=CF_2026_WITHOUT_ONE_YEAR_INCREASE[track],uptake=s.complexity/100;
  const at=cf=>CODES.reduce((a,code)=>{const monthly=s.visits*s.days*s.mix[code]/100,iv=intervalsFor(data,2026,track,code);return {base:a.base+monthly*weighted(iv,x=>cents(x.pricing_rvu*cf)),complexity:a.complexity+monthly*uptake*weighted(iv,x=>cents(x.g2211_rvu*cf))};},{base:0,complexity:0});
  const mid=at(cfMid),end=at(cf27),sum=p=>p.base+p.complexity;
- const oneYearIncreaseExpires=sum(mid)-y26.nominalMonthly,cfUpdate=sum(end)-sum(mid),revaluation=y27.baseMonthly-end.base,coding=y27.complexityMonthly-end.complexity,total=y27.nominalMonthly-y26.nominalMonthly;
+ // Parts are priced before sequestration, then scaled by 2027's sequestration factor; any change in the sequestration
+ // rate itself is its own part, so the parts still add up exactly to the after-sequestration change.
+ const f26=sequestrationFactor(2026),f27=sequestrationFactor(2027);
+ const oneYearIncreaseExpires=(sum(mid)-y26.grossMonthly)*f27,cfUpdate=(sum(end)-sum(mid))*f27,revaluation=(y27.grossBaseMonthly-end.base)*f27,coding=(y27.grossComplexityMonthly-end.complexity)*f27,sequestration=(f27-f26)*y26.grossMonthly,total=y27.nominalMonthly-y26.nominalMonthly;
  const pct=(a,b)=>b?a/b-1:null,adjusted=k=>y26.nominalMonthly*y27.indices[k].factor/y26.indices[k].factor;
- return {from:y26,to:y27,modifier:r.modifier,cf:{from:y26.cf,withoutIncrease:cfMid,to:cf27,change:pct(cf27,y26.cf),expiry:pct(cfMid,y26.cf),update:pct(cf27,cfMid)},total,totalPct:pct(y27.nominalMonthly,y26.nominalMonthly),parts:{oneYearIncreaseExpires,cfUpdate,revaluation,coding},
+ return {from:y26,to:y27,modifier:r.modifier,cf:{from:y26.cf,withoutIncrease:cfMid,to:cf27,change:pct(cf27,y26.cf),expiry:pct(cfMid,y26.cf),update:pct(cf27,cfMid)},total,totalPct:pct(y27.nominalMonthly,y26.nominalMonthly),parts:{oneYearIncreaseExpires,cfUpdate,revaluation,coding,sequestration},
   inflation:Object.fromEntries(['CPI','MEI'].map(k=>[k,{from:adjusted(k),change:y27.nominalMonthly-adjusted(k),pct:pct(y27.nominalMonthly,adjusted(k)),rate:y27.indices[k].factor/y26.indices[k].factor-1}]))};
 }
 export function eventsFor(data,s){
