@@ -1,18 +1,24 @@
 export const DATA_VERSION='2026-11-05.4';
-export const ENGINE_VERSION='2026-11-06.3';
+export const ENGINE_VERSION='2026-11-06.4';
 export const YEARS=Array.from({length:36},(_,i)=>1992+i);
 export const CODES=['99212','99213','99214','99215','99202','99203','99204','99205'];
 export const DEFAULT_MIX={'99212':6,'99213':36,'99214':44,'99215':9,'99202':1,'99203':1,'99204':2,'99205':1};
-// qp: Qualifying APM Participant (sets the 2026+ conversion factor track).
-// aco: participates in an MSSP or LEAD ACO (bills B2 instead of B1 in 2027). The two are independent.
-export const defaultState=()=>({qp:false,aco:false,visits:20,days:22,mix:{...DEFAULT_MIX},complexity:25});
+// The 2027 track questions, stored as answered (defaults are the lowest-paying choices):
+// program: 2027 participation. 'aco' = MSSP ACO (any track, incl. PC Flex) or LEAD, which can bill B2 (CY2027 final rule);
+//   'apm' = another Advanced APM (e.g. KCC, EOM), which bills B1; 'none' = no APM, B1.
+// track: the 2027 MSSP/LEAD track (only with program 'aco'). It does not change 2027 prices.
+// qp: QP in the 2025 performance year, which sets the 2027 conversion factor (QP status runs two years ahead).
+export const PROGRAMS=['none','aco','apm'],TRACKS=['basic-ad','basic-e','enhanced','lead'];
+export const defaultState=()=>({program:'none',track:null,qp:false,visits:20,days:22,mix:{...DEFAULT_MIX},complexity:25});
+// The state for one of the four price combinations, keeping everything else.
+export const comboState=(s,qp,b2)=>({...s,program:b2?'aco':qp?'apm':'none',track:b2?(s.program==='aco'?s.track:'basic-ad'):null,qp});
 export const trackFor=s=>s.qp?'qp':'nonqp';
-export const modifierFor=s=>s.aco?'B2':'B1';
+export const modifierFor=s=>s.program==='aco'?'B2':'B1';
 // CY2027 PFS final rule: B1 = 16% and B2 = 32% of the total RVUs of the base E/M service on the claim.
 export const MODIFIER_UPLIFT={B1:.16,B2:.32};
 const finite=Number.isFinite,cents=n=>Math.round((n+Number.EPSILON)*100)/100;
 export function validate(s){
- const e=[];if(typeof s.qp!=='boolean'||typeof s.aco!=='boolean')e.push('Choose QP and ACO settings.');
+ const e=[];if(!PROGRAMS.includes(s.program)||typeof s.qp!=='boolean'||(s.program==='aco'?!TRACKS.includes(s.track):s.track!==null)||(s.program==='none'&&s.qp))e.push('Answer the 2027 track questions.');
  if(!finite(s.visits)||s.visits<0||s.visits>1000)e.push('Visits per day must be between 0 and 1,000.');
  if(!Number.isInteger(s.days)||s.days<1||s.days>31)e.push('Working days must be a whole number from 1 to 31.');
  if(!finite(s.complexity)||s.complexity<0||s.complexity>100)e.push('Complexity billing must be between 0% and 100%.');
