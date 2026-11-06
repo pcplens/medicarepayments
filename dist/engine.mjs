@@ -1,5 +1,5 @@
 export const DATA_VERSION='2026-11-05.4';
-export const ENGINE_VERSION='2026-11-06.12';
+export const ENGINE_VERSION='2026-11-06.13';
 export const YEARS=Array.from({length:36},(_,i)=>1992+i);
 export const CODES=['99212','99213','99214','99215','99202','99203','99204','99205'];
 export const DEFAULT_MIX={'99212':6,'99213':36,'99214':44,'99215':9,'99202':1,'99203':1,'99204':2,'99205':1};
@@ -11,7 +11,7 @@ export const DEFAULT_MIX={'99212':6,'99213':36,'99214':44,'99215':9,'99202':1,'9
 export const PROGRAMS=['none','aco','apm'],TRACKS=['basic-ad','basic-e','enhanced','lead'];
 // APCM (Advanced Primary Care Management): patients billed per month for each level, from January 1, 2025.
 // Prices come from data.apcm (exported read-only from the project DuckDB): RVU × that year's conversion factor for the track.
-export const APCM_CODES=['G0556','G0557','G0558'],APCM_START=2025,APCM_DATA_VERSION='2026-11-06.1';
+export const APCM_CODES=['G0556','G0557','G0558'],APCM_START=2025,APCM_DATA_VERSION='2026-11-06.2';
 export const defaultState=()=>({program:'none',track:null,qp:false,visits:20,days:22,mix:{...DEFAULT_MIX},complexity:25,apcm:{G0556:0,G0557:0,G0558:0}});
 export function apcmFee(data,code,year,cf){if(year<APCM_START)return 0;const r=data.apcm?.rvus.find(r=>r.year===year&&r.code===code);if(!r)throw Error(`Missing APCM pricing: ${code} ${year}`);return cents(r.nf_total_rvu*cf);}
 // The state for one of the four price combinations, keeping everything else.
@@ -90,7 +90,12 @@ export function yearBreakdown(data,s,year,r=calculate(data,s)){
  const re=CODES.reduce((acc,code)=>{const monthly=s.visits*s.days*s.mix[code]/100,iv=intervalsFor(data,year-1,track,code);return {base:acc.base+monthly*weighted(iv,x=>cents(x.pricing_rvu*cf)),complexity:acc.complexity+(year-1>=2024?monthly*uptake*weighted(iv,x=>cents((x.g2211_rvu||0)*cf)):0)};},{base:0,complexity:0});
  const fA=sequestrationFactor(year-1),fB=sequestrationFactor(year);
  const parts={conversionFactor:(re.base+re.complexity-a.grossBaseMonthly-a.grossComplexityMonthly)*fB,revaluation:(b.grossBaseMonthly-re.base)*fB,coding:(b.grossComplexityMonthly-re.complexity)*fB,apcm:(b.grossApcmMonthly-a.grossApcmMonthly)*fB,sequestration:(fB-fA)*a.grossMonthly};
- return {year,from:a,to:b,cf:{from:a.cf,to:cf},total:b.nominalMonthly-a.nominalMonthly,totalPct:a.nominalMonthly?b.nominalMonthly/a.nominalMonthly-1:null,parts};
+ // The APCM part split in two (outside parts, so parts still add to the total): the same patients priced at last year's
+ // APCM RVUs and this year's conversion factor (apcmConversionFactor), then this year's RVUs (apcmRevaluation).
+ // Only from 2026, when there is a prior APCM year to reprice; in 2025 the whole APCM part is the codes' introduction.
+ let detail={apcmConversionFactor:0,apcmRevaluation:0};
+ if(year-1>=APCM_START){const reApcm=APCM_CODES.reduce((acc,code)=>acc+(s.apcm[code]?s.apcm[code]*apcmFee(data,code,year-1,cf):0),0);detail={apcmConversionFactor:(reApcm-a.grossApcmMonthly)*fB,apcmRevaluation:(b.grossApcmMonthly-reApcm)*fB};}
+ return {year,from:a,to:b,cf:{from:a.cf,to:cf},total:b.nominalMonthly-a.nominalMonthly,totalPct:a.nominalMonthly?b.nominalMonthly/a.nominalMonthly-1:null,parts,detail};
 }
 export function eventsFor(data,s){
  const events=[];

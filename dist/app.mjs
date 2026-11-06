@@ -49,9 +49,8 @@ function renderChange(){
 }
 const hiddenEvents=new Set(),CATEGORY_NAMES={rate:'Payment rate',rvu:'RVU values',coding:'Coding changes'};
 function syncRange(){const {from,to}=view.chart;$('chart-from').innerHTML=YEARS.map(y=>`<option value="${y}"${y===from?' selected':''}${y>=to?' disabled':''}>${y}</option>`).join('');$('chart-to').innerHTML=YEARS.map(y=>`<option value="${y}"${y===to?' selected':''}${y<=from?' disabled':''}>${y}</option>`).join('');}
-// An event's own part of its year's change: the yearBreakdown() parts it represents.
-const PART_LABELS={conversionFactor:'Conversion factor',revaluation:'RVU values',coding:'Complexity coding',apcm:'APCM',sequestration:'Sequestration'};
-function ownImpact(event){const b=event?.parts&&yearBreakdown(data,lastState,event.year,result);return b?event.parts.reduce((a,k)=>a+b.parts[k],0):undefined;}
+// An event's own part of its year's change: the yearBreakdown() parts it represents. Shown in the marker's hover only.
+function ownImpact(event){const b=event?.parts&&yearBreakdown(data,lastState,event.year,result);return b?event.parts.reduce((a,k)=>a+(k in b.parts?b.parts[k]:b.detail[k]),0):undefined;}
 let chartApi;
 function renderChart(){
  const {from,to}=view.chart;$('chart-tooltip').hidden=true;syncRange();
@@ -59,7 +58,7 @@ function renderChart(){
  $('caveat-shading').hidden=from>1995;
  for(const b of document.querySelectorAll('.event-filter'))b.setAttribute('aria-pressed',String(!hiddenEvents.has(b.dataset.category)));
   if(selectedEvent&&!events.some(e=>e.id===selectedEvent.id&&e.year>from&&e.year<=to&&!hiddenEvents.has(e.category)))closeEvent(false);
- chartApi=drawMonthly($('history-chart'),$('event-buttons'),{selected:selectedEvent?.id,points:monthlySeries(result,to),events:events.map(e=>({...e,impact:ownImpact(e),hover:eventHover(data,lastState,e.policy)})),onOpen:openEvent,from,to,tooltip:$('chart-tooltip'),hidden:hiddenEvents});
+ chartApi=drawMonthly($('history-chart'),$('event-buttons'),{selected:selectedEvent?.id,points:monthlySeries(result,to),events:events.map(e=>({...e,impact:ownImpact(e),hover:eventHover(data,lastState,e.policy)})),onOpen:openEvent,from,to,tooltip:$('chart-tooltip'),hidden:hiddenEvents});$('marker-cue').hidden=!$('event-buttons').querySelector('.event-marker');
  const inRange=events.filter(e=>e.year>from&&e.year<=to);
  $('event-list-items').innerHTML=inRange.length?inRange.map(e=>`<li><button type="button" class="event-list-item ${e.category}" data-id="${e.id}"><i aria-hidden="true"></i><b>${e.year}</b> ${esc(e.label)}<small>${CATEGORY_NAMES[e.category]} · ${esc(e.detail)}</small></button></li>`).join(''):'<li class="muted">No policy events in this range.</li>';
  for(const b of $('event-list-items').querySelectorAll('button'))b.onclick=()=>openEvent(events.find(e=>e.id===b.dataset.id),b);
@@ -96,11 +95,9 @@ function closeEvent(restoreFocus=true){
 function fillEvent(event){
  const year=event.year,policy=policyFor(data,lastState,event.policy);if(!policy)return false;
  $('event-title').textContent=`${year} · ${policy.title}`;
- const now=points.find(p=>p.year===year),before=points.find(p=>p.year===year-1),pc=(a,b)=>b?pctText(a/b-1):'—';
  const hideAt=(t,i)=>t.narrowHide?.includes(i)?' narrow-hide':'',pair=x=>{const [f,t]=String(x).split(' → ');return t===undefined?esc(x):`<span class="from">${esc(f)}</span><span class="arr"> → </span><span class="to">${esc(t)}</span>`;},cell=(c,i,t)=>typeof c==='object'?`<td class="${c.changed?'changed':'same'}${hideAt(t,i)}">${pair(c.text)}</td>`:`<td class="${hideAt(t,i).trim()}">${pair(c)}</td>`;
  const tables=policy.tables.map(t=>`<div class="policy-table"><table><caption>${esc(t.caption)}</caption><thead><tr>${t.head.map((h,i)=>{const [long,short]=h.split('|');return `<th scope="col" class="${hideAt(t,i).trim()}">${short?`<span class="long">${esc(long)}</span><abbr class="short" title="${esc(long)}">${esc(short)}</abbr>`:esc(long)}</th>`;}).join('')}</tr></thead><tbody>${t.rows.map(r=>`<tr><th scope="row">${r[0]}</th>${r.slice(1).map((c,i)=>cell(c,i+1,t)).join('')}</tr>`).join('')}</tbody></table>${t.note?`<p class="hint">${esc(t.note)}</p>`:''}</div>`).join('');
- const own=ownImpact(event),yb=yearBreakdown(data,lastState,year,result),moved=yb?Object.entries(yb.parts).filter(([k,v])=>Math.abs(v)>=.5):[];
- $('event-content').innerHTML=`<p class="policy-summary">${esc(policy.summary)}</p><h3 class="policy-h">What changed</h3>${tables}<div class="policy-impact"><h3>Monthly payment, ${year-1} → ${year}</h3><dl>${own!==undefined?`<div class="own"><dt>This change</dt><dd>${signed(own)}</dd></div>`:''}${moved.length>1?`<div class="parts"><dt>Everything that moved it</dt><dd><ul>${moved.map(([k,v])=>`<li class="${event.parts?.includes(k)?'mine':''}"><span>${PART_LABELS[k]}</span><span>${signed(v)}</span></li>`).join('')}</ul></dd></div>`:''}<div><dt>Total, that year’s dollars</dt><dd>${money(before.nominal)} → ${money(now.nominal)} <small>${pc(now.nominal,before.nominal)}</small></dd></div><div><dt>In 2027 dollars (MEI)</dt><dd>${money(before.MEI)} → ${money(now.MEI)} <small>${pc(now.MEI,before.MEI)}</small></dd></div></dl><p class="hint">Same visits and mix in both years, after sequestration.</p></div>${policy.background?.length?`<details class="disclosure policy-background"><summary>Background</summary>${policy.background.map(b=>`<p>${esc(b)}</p>`).join('')}</details>`:''}<p class="policy-source"><a href="${esc(policy.url)}" target="_blank" rel="noopener">Policy source ↗</a></p>`;
+ $('event-content').innerHTML=`<p class="policy-summary">${esc(policy.summary)}</p><h3 class="policy-h">What changed</h3>${tables}${policy.background?.length?`<details class="disclosure policy-background"><summary>Background</summary>${policy.background.map(b=>`<p>${esc(b)}</p>`).join('')}</details>`:''}<p class="policy-source"><a href="${esc(policy.url)}" target="_blank" rel="noopener">Policy source ↗</a></p>`;
  return true;
 }
 $('close-event').onclick=()=>closeEvent();document.addEventListener('keydown',e=>{if(e.key==='Escape'&&selectedEvent&&!$('event-panel').hidden)closeEvent();});

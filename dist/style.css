@@ -72,14 +72,6 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}.shell,main,.workspace>
 .chart-tooltip .CPI{color:var(--CPI)}
 .chart-tooltip .MEI{color:var(--MEI)}
 .chart-caveats,.table-note{font-size:11px;line-height:1.7;color:var(--muted);margin:10px 0 0}
-.policy-impact{background:var(--panel);border-radius:6px;padding:12px 14px;margin:14px 0}
-.policy-impact h3{font-size:13px;margin-bottom:6px}
-.policy-impact dl{margin:0}
-.policy-impact dl>div{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding:6px 0}
-.policy-impact dt{font-size:12px}
-.policy-impact dd{margin:0;font-weight:600}
-.policy-impact small{color:var(--muted);font-weight:400;margin-left:4px}
-.policy-impact .hint{margin:8px 0 0}
 @media(max-width:760px){.panel-heading .share-wrap{align-items:flex-start}}
 .track-card{border:1px solid var(--line);background:#fff;border-radius:10px;padding:20px 24px;margin-bottom:23px}
 .track-card h2{font-size:19px;margin-bottom:6px}
@@ -127,7 +119,6 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}.shell,main,.workspace>
 .range-picker select{display:inline-block;width:auto;min-width:96px;margin:0;font-size:16px;font-weight:600;padding:6px 8px;min-height:40px}
 .event-key{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:10px 0 4px;font-size:12px}
 .event-key-title{font-weight:600;margin-right:2px}
-.event-key-hint{flex-basis:100%;color:var(--muted);font-size:11px}
 .event-filter{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:4px 10px;border:1px solid var(--border);border-radius:999px;background:var(--paper);color:var(--ink);font-size:12px;cursor:pointer}
 .event-filter[aria-pressed=false]{color:var(--muted);text-decoration:line-through;background:transparent}
 .event-filter[aria-pressed=false] i{opacity:.35}
@@ -142,8 +133,24 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}.shell,main,.workspace>
 .event-marker.rate::before{background:var(--ev-rate);border-radius:50%}
 .event-marker.rvu::before{background:var(--ev-rvu);border-radius:1px}
 .event-marker.coding::before{background:var(--ev-coding);transform:rotate(45deg) scale(.9)}
-.event-marker:hover::before,.event-marker:focus-visible::before{width:14px;height:14px}
-.event-marker:focus-visible{outline:2px solid var(--ink);outline-offset:0;border-radius:50%}
+/* Markers are buttons: a soft halo and a coloured ring on hover/focus, plus a visible focus outline. */
+.event-marker{--ev:var(--ev-rate);border-radius:50%;transition:background-color .12s}
+.event-marker.rvu{--ev:var(--ev-rvu)}.event-marker.coding{--ev:var(--ev-coding)}
+.event-marker::before{transition:width .12s,height .12s,box-shadow .12s}
+.event-marker:hover,.event-marker:focus-visible{background:color-mix(in srgb,var(--ev) 16%,transparent)}
+.event-marker:hover::before,.event-marker:focus-visible::before{width:14px;height:14px;box-shadow:0 0 0 2px #fff,0 0 0 3px var(--ev)}
+.event-marker:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
+@media(prefers-reduced-motion:reduce){.event-marker,.event-marker::before{transition:none}}
+.marker-cue{display:flex;align-items:center;flex-wrap:wrap;gap:4px 7px;margin:2px 0 6px;font-size:12px;line-height:1.5;color:var(--muted)}
+.marker-cue[hidden]{display:none}
+.marker-cue b{font-weight:600;color:var(--ink)}
+.cue-marks{display:inline-flex;align-items:center;gap:5px;margin-right:1px}
+.cue-marks i{display:block;width:8px;height:8px;background:var(--ev-rate);border-radius:50%}
+.cue-marks i.rvu{background:var(--ev-rvu);border-radius:1px}
+.cue-marks i.coding{background:var(--ev-coding);border-radius:0;transform:rotate(45deg) scale(.85)}
+.cue-arrow{color:var(--ink);font-size:11px}
+.cue-touch{display:none}
+@media(hover:none),(pointer:coarse){.cue-pointer{display:none}.cue-touch{display:inline}}
 .event-marker:disabled{opacity:.4;cursor:default}
 .event-band{opacity:.1}
 .event-band.rate{fill:var(--ev-rate)}.event-band.rvu{fill:var(--ev-rvu)}.event-band.coding{fill:var(--ev-coding)}
@@ -182,12 +189,6 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}.shell,main,.workspace>
 .policy-background p{margin:6px 0}
 .policy-table .short{display:none;text-decoration:none}
 @media(max-width:480px){.policy-table .long{display:none}.policy-table .short{display:inline}.policy-table table{font-size:10.5px}.policy-table th,.policy-table td{padding:5px 2px}.policy-table tbody th small{font-size:9px}}
-.policy-impact .own dd{font-size:15px}
-.policy-impact .parts{display:block}
-.policy-impact .parts dd{margin-top:4px}
-.policy-impact .parts ul{list-style:none;margin:0;padding:0}
-.policy-impact .parts li{display:flex;justify-content:space-between;gap:12px;font-weight:400;font-size:12px;padding:2px 0;color:var(--muted)}
-.policy-impact .parts li.mine{color:var(--ink);font-weight:700}
 @media(max-width:480px){.policy-table .narrow-hide{display:none}}
 .event-panel{margin:12px 0 4px;padding:16px 18px;border:1px solid var(--border);border-radius:8px;background:var(--paper);scroll-margin:16px}
 .event-panel[hidden]{display:none}
@@ -195,7 +196,6 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}.shell,main,.workspace>
 .event-panel-head h3{font-size:18px;line-height:1.3;margin:0}
 .event-panel-head h3:focus{outline:none}
 .event-panel-head h3:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
-.event-panel .policy-impact{max-width:560px}
 .event-marker.selected::before{width:15px;height:15px;box-shadow:0 0 0 2px #fff,0 0 0 4px var(--ink)}
 .chart-tooltip .tip-line{display:block;margin-top:2px}
 @media(max-width:600px){.event-panel{padding:12px 10px}.event-panel-head h3{font-size:16px}}
