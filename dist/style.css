@@ -185,11 +185,14 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}.shell,main,.workspace>
 .policy-table tbody th small{display:block;font-weight:400;color:var(--muted);font-size:10px}
 .policy-table td.changed{font-weight:700;color:var(--ink)}
 .policy-table td.same{color:var(--muted)}
+.policy-table td.repeat{font-weight:400;color:var(--muted)}
+.policy-table .rvu-components{margin:8px 0 0}
+.policy-table .rvu-components table{margin-top:4px}
 .policy-table .hint{margin:6px 0 0}
 .policy-background{margin:6px 0 10px}
 .policy-background p{margin:6px 0}
 .policy-table .short{display:none;text-decoration:none}
-@media(max-width:480px){.policy-table .long{display:none}.policy-table .short{display:inline}.policy-table table{font-size:10.5px}.policy-table th,.policy-table td{padding:5px 2px}.policy-table tbody th small{font-size:9px}}
+@media(max-width:480px){.policy-table .long{display:none}.policy-table .short{display:inline}.policy-table table{font-size:10.5px}.policy-table th,.policy-table td{padding:5px 2px}.policy-table tbody th small{font-size:9px;white-space:normal;min-width:7em}}
 @media(max-width:480px){.policy-table .narrow-hide{display:none}}
 .event-panel{margin:12px 0 4px;padding:16px 18px;border:1px solid var(--border);border-radius:8px;background:var(--paper);scroll-margin:16px}
 .event-panel[hidden]{display:none}

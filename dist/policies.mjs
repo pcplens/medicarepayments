@@ -7,14 +7,26 @@ const LABEL={'99212':'Est. level 2','99213':'Est. level 3','99214':'Est. level 4
 const r2=n=>Number(n).toFixed(2),r4=n=>Number(n).toFixed(4),usd=n=>'$'+Number(n).toFixed(2),pct=n=>(n>0?'+':n<0?'−':'')+Math.abs(n*100).toFixed(2)+'%';
 const arrow=(a,b,f=r2)=>a===b?{text:f(b),changed:false}:{text:`${f(a)} → ${f(b)}`,changed:true};
 const cfOf=(data,year,track)=>data.annual.find(r=>r.year===year&&r.track===track&&r.code==='99213').cf;
+const trackOf=(state,year)=>state.qp&&year>=2026?'qp':'nonqp',r3=n=>Number(n).toFixed(3);
+const ivOf=(data,y,t,c)=>data.intervals.filter(r=>r.year===y&&r.track===t&&r.code===c);
+// RVUs payment used, day-weighted across a year's effective periods (one period in every RVU event year).
+const paidRvu=(data,y,t,c)=>{const iv=ivOf(data,y,t,c);return iv.reduce((a,r)=>a+r.pricing_rvu*r.interval_days,0)/iv[0].year_days;};
+// Two decimals unless the value has more precision (1997–1998 work-adjusted RVUs): then three, so RVUs × CF ≈ fee.
+const rvuArrow=(a,b)=>{const fine=x=>Math.abs(x*100-Math.round(x*100))>1e-6;return arrow(a,b,fine(a)||fine(b)?r3:r2);};
+const cfCell=(data,year,t,i)=>({...arrow(cfOf(data,year-1,t),cfOf(data,year,t),n=>usd4(n)),repeat:i>0});
+const multiPeriod=(data,year,t)=>[year-1,year].some(y=>new Set(ivOf(data,y,t,'99213').map(r=>r.effective_start)).size>1)?'CF and fee are day-weighted averages; RVUs × CF may differ by a few cents.':null;
 // Table builders. Each returns {caption, head, rows (cells are strings or {text,changed}), note?}.
 const TABLES={
+ // Fee per visit = total RVUs × CF. RVUs are the ones payment used (pricing_rvu): in work-adjusted years (1997–1998,
+ // 2007–2008) that is work × factor + PE + MP, not the published total. Day-weighted when a year has several periods.
+ // Each row reads as an equation; the CF repeats per row (muted after the first). Components go in a collapsed details.
  rvus(data,year,state){
-  const t=state.qp&&year>=2026?'qp':'nonqp',fee=(y,c)=>data.annual.find(r=>r.year===y&&r.track===t&&r.code===c).base_fee;
-  const rows=CODES.map(code=>{const a=data.rvus.find(r=>r.year===year-1&&r.code===code),b=data.rvus.find(r=>r.year===year&&r.code===code);return [`${code}<small>${LABEL[code]}</small>`,arrow(a.work,b.work),arrow(a.pe,b.pe),arrow(a.mp,b.mp),arrow(a.total,b.total),arrow(fee(year-1,code),fee(year,code),usd)];});
-  const f0=data.rvus.find(r=>r.year===year-1&&r.code==='99213').work_factor,f1=data.rvus.find(r=>r.year===year&&r.code==='99213').work_factor;
-  const r={caption:`RVUs and fee per visit, ${year-1} → ${year}`,head:['Code','Work','Practice expense|PE','Malpractice|MP','Total RVUs|Total','Fee per visit|Fee'],narrowHide:[3],rows,note:f0!==f1?(f1===1?`The separate work adjustment (× ${f0} in ${year-1}) ended in ${year}.`:`Payment used work RVUs × ${f1} (the work adjustment).`):f1!==1?`Payment used work RVUs × ${f1} (the work adjustment).`:'Unchanged values are greyed out.'};
-  r.note+=' Fees are national amounts before sequestration and include that year’s CF.';return r;
+  const t=trackOf(state,year),fee=(y,c)=>data.annual.find(r=>r.year===y&&r.track===t&&r.code===c).base_fee,pub=(y,c)=>data.rvus.find(r=>r.year===y&&r.code===c);
+  const rows=CODES.map((code,i)=>[`${code}<small>${LABEL[code]}</small>`,rvuArrow(paidRvu(data,year-1,t,code),paidRvu(data,year,t,code)),cfCell(data,year,t,i),arrow(fee(year-1,code),fee(year,code),usd)]);
+  const f=y=>pub(y,'99213').work_factor,work=[year-1,year].filter(y=>f(y)!==1).map(y=>`${y} RVUs are as paid, after the ${f(y)} work adjustment${f(year)===1?`, which ended in ${year}`:''}.`);
+  const parts=[...work,multiPeriod(data,year,t),`Fees are national amounts before sequestration${year>=2026?`, at the ${t==='qp'?'QP':'non-QP'} CF`:''}. Unchanged values are greyed out.`].filter(Boolean);
+  const components={summary:'RVU components (work, PE, MP)',head:['Code','Work','PE','MP','Total'],rows:CODES.map(code=>{const a=pub(year-1,code),b=pub(year,code);return [`${code}<small>${LABEL[code]}</small>`,arrow(a.work,b.work),arrow(a.pe,b.pe),arrow(a.mp,b.mp),arrow(a.total,b.total)];}),note:work.length?`Published RVUs. ${[year-1,year].filter(y=>f(y)!==1).map(y=>`${y} work RVUs are before the ${f(y)} adjustment`).join('; ')}.`:null};
+  return {caption:`Total RVUs × CF = fee per visit, ${year-1} → ${year}`,head:['Code','Total RVUs|RVUs','× CF','= Fee per visit|= Fee'],rows,note:parts.join(' '),components};
  },
  cf(data,year){const tracks=year>=2026?[['nonqp','Non-QP'],['qp','QP']]:[['nonqp','All clinicians']];return {caption:`CF, ${year-1} → ${year} ($ per RVU)`,head:['',String(year-1),String(year),'Change'],rows:tracks.map(([t,l])=>{const a=cfOf(data,year-1,t),b=cfOf(data,year,t);return [l,usd4(a),usd4(b),{text:pct(b/a-1),changed:true}];})};},
  cfRun(data){const relief={2021:'3.75%',2022:'3.00%',2023:'2.50%',2024:'1.25%; 2.93% from Mar 9',2025:'None'},rows=[];for(let y=2021;y<=2025;y++){const a=cfOf(data,y,'nonqp'),p=cfOf(data,y-1,'nonqp');rows.push([String(y),usd4(a),{text:pct(a/p-1),changed:true},relief[y]]);}rows.push(['2021 → 2025','',{text:pct(cfOf(data,2025,'nonqp')/cfOf(data,2021,'nonqp')-1),changed:true},'']);return {caption:'CF by year ($ per RVU)',head:['Year','CF','Change from prior year','One-year increase from Congress included|One-year increase'],rows,note:'2024 is a day-weighted average of two rates: 32.7442 until March 8 and 33.2875 from March 9.'};},
@@ -27,9 +39,10 @@ const TABLES={
 };
 // APCM RVUs revalued alongside office visits (2025 → 2026 → 2027). Shown in the RVU panels whether or not APCM patients
 // are entered; the payment uses the selected track's conversion factor (QP or non-QP from 2026).
-TABLES.apcmRvus=(data,year,state)=>{if(!data.apcm||year-1<APCM_START)return null;const t=state.qp&&year>=2026?'qp':'nonqp',rv=(y,c)=>data.apcm.rvus.find(r=>r.year===y&&r.code===c);
- const rows=APCM_CODES.map(c=>{const a=rv(year-1,c),b=rv(year,c);return [`${c}<small>${APCM_LABEL[c]}</small>`,arrow(a.work_rvu,b.work_rvu),arrow(a.nf_pe_rvu,b.nf_pe_rvu),arrow(a.mp_rvu,b.mp_rvu),arrow(a.nf_total_rvu,b.nf_total_rvu),arrow(apcmFee(data,c,year-1,cfOf(data,year-1,t)),apcmFee(data,c,year,cfOf(data,year,t)),usd)];});
- return {caption:`APCM RVUs and payment per patient per month, ${year-1} → ${year}`,head:['Code','Work','Practice expense|PE','Malpractice|MP','Total RVUs|Total','Per patient per month|Per month'],narrowHide:[3],rows,note:`APCM codes are billed once per patient per month. National amounts before sequestration, at each year’s ${t==='qp'?'QP':'non-QP'} CF; the 20% patient share is included. The payment change includes the CF’s ${pct(cfOf(data,year,t)/cfOf(data,year-1,t)-1)}.`};};
+TABLES.apcmRvus=(data,year,state)=>{if(!data.apcm||year-1<APCM_START)return null;const t=trackOf(state,year),rv=(y,c)=>data.apcm.rvus.find(r=>r.year===y&&r.code===c);
+ const rows=APCM_CODES.map((c,i)=>{const a=rv(year-1,c),b=rv(year,c);return [`${c}<small>${APCM_LABEL[c]}</small>`,rvuArrow(a.nf_total_rvu,b.nf_total_rvu),cfCell(data,year,t,i),arrow(apcmFee(data,c,year-1,cfOf(data,year-1,t)),apcmFee(data,c,year,cfOf(data,year,t)),usd)];});
+ const components={summary:'RVU components (work, PE, MP)',head:['Code','Work','PE','MP','Total'],rows:APCM_CODES.map(c=>{const a=rv(year-1,c),b=rv(year,c);return [`${c}<small>${APCM_LABEL[c]}</small>`,arrow(a.work_rvu,b.work_rvu),arrow(a.nf_pe_rvu,b.nf_pe_rvu),arrow(a.mp_rvu,b.mp_rvu),arrow(a.nf_total_rvu,b.nf_total_rvu)];}),note:null};
+ return {caption:`APCM: total RVUs × CF = payment per patient per month, ${year-1} → ${year}`,head:['Code','Total RVUs|RVUs','× CF','= Per patient per month|= Per month'],rows,note:`Billed once per patient per month. National amounts before sequestration, at the ${t==='qp'?'QP':'non-QP'} CF; the 20% patient share is included.`,components};};
 const usd4=n=>'$'+r4(n);
 const POLICIES={
  1997:{title:'Work RVUs for E/M visits raised, with an offset',summary:'The first five-year review raised work RVUs for most office E/M visits, offset by a 0.917 work adjustment that kept total Medicare spending unchanged.',tables:['rvus'],background:['HCFA reviews RVUs every five years. To keep spending level, the 0.917 multiplier scaled every work RVU down about 8%.'],url:'https://www.govinfo.gov/content/pkg/FR-1996-11-22/pdf/96-29558.pdf'},
@@ -51,11 +64,11 @@ const POLICIES={
  2027:{title:'B1 and B2 replace G2211',summary:'The fixed G2211 add-on is replaced by modifiers worth 16% (B1) or 32% (B2) of the visit’s full fee. B2 requires being in an MSSP or LEAD ACO.',tables:['b1b2'],background:['The CY 2027 final rule sets B1 at 16 percent of the total RVUs of the E/M service on the claim. B2, at 32 percent, is limited to clinicians in MSSP or LEAD ACOs; it does not depend on QP status.'],url:FR_2027},
 };
 // Short hover lines for each table type: the key numbers only. RVU events show the mix-weighted average total RVUs
-// per visit and the two most-used codes; the full tables are in the details panel.
+// per visit (as paid) and the two most-used codes, plus the CF when the event has no CF table; the full tables are in the details panel.
 const topCodes=(state,n)=>[...CODES].filter(c=>state.mix[c]>0).sort((a,b)=>state.mix[b]-state.mix[a]||CODES.indexOf(a)-CODES.indexOf(b)).slice(0,n);
 const pct1=n=>(n>0.0005?'+':n<-0.0005?'−':'')+Math.abs(n*100).toFixed(1)+'%',chg=(a,b)=>a?` (${pct1(b/a-1)})`:'';
 const HOVER={
- rvus(data,year,state){const tot=(y,c)=>data.rvus.find(r=>r.year===y&&r.code===c).total,avg=y=>CODES.reduce((a,c)=>a+state.mix[c]/100*tot(y,c),0),a=avg(year-1),b=avg(year);return [`Avg total RVUs per visit (selected mix): ${r2(a)} → ${r2(b)}${chg(a,b)}`,...topCodes(state,2).map(c=>`${c}: ${r2(tot(year-1,c))} → ${r2(tot(year,c))}${chg(tot(year-1,c),tot(year,c))}`)];},
+ rvus(data,year,state){const tr=trackOf(state,year),tot=(y,c)=>paidRvu(data,y,tr,c),avg=y=>CODES.reduce((a,c)=>a+state.mix[c]/100*tot(y,c),0),a=avg(year-1),b=avg(year);return [`Avg total RVUs per visit (selected mix): ${r2(a)} → ${r2(b)}${chg(a,b)}`,...topCodes(state,2).map(c=>`${c}: ${r2(tot(year-1,c))} → ${r2(tot(year,c))}${chg(tot(year-1,c),tot(year,c))}`)];},
  cf(data,year,state){const t=state.qp&&year>=2026?'qp':'nonqp',a=cfOf(data,year-1,t),b=cfOf(data,year,t);return [`CF${year>=2026?(t==='qp'?' (QP)':' (non-QP)'):''}: ${usd4(a)} → ${usd4(b)}${chg(a,b)}`];},
  cfRun(data){const a=cfOf(data,2024,'nonqp'),b=cfOf(data,2025,'nonqp');return [`CF: ${usd4(a)} → ${usd4(b)}${chg(a,b)}`,`Since 2021: ${pct1(b/cfOf(data,2021,'nonqp')-1)}`];},
  cfSteps(data,year,state){const t=state.qp?'qp':'nonqp';return [`CF${t==='qp'?' (QP)':' (non-QP)'}: ${usd4(cfOf(data,2026,t))} → ${usd4(cfOf(data,2027,t))}`,`Without 2026’s 2.5%: ${usd4(CF_2026_WITHOUT_ONE_YEAR_INCREASE[t])}, then the 2027 update`];},
@@ -67,6 +80,6 @@ const HOVER={
  apcmRvus(data,year,state){if(!data.apcm||year-1<APCM_START||!APCM_CODES.some(c=>state.apcm?.[c]>0))return [];const c=APCM_CODES.reduce((a,c)=>state.apcm[c]>state.apcm[a]?c:a),t=r=>data.apcm.rvus.find(x=>x.year===r&&x.code===c).nf_total_rvu;return [`APCM ${c} total RVUs: ${r2(t(year-1))} → ${r2(t(year))}${chg(t(year-1),t(year))}`];},
  apcm(data,year,state){if(!data.apcm)return [];const c=APCM_CODES.reduce((a,c)=>state.apcm?.[c]>(state.apcm?.[a]??0)?c:a,'G0557');return [`${c}: ${usd(apcmFee(data,c,2025,cfOf(data,2025,'nonqp')))} per patient per month`];},
 };
-export function eventHover(data,state,key){const policy=POLICIES[key];if(!policy)return null;const year=parseInt(key,10),lines=policy.tables.flatMap(t=>HOVER[t](data,year,state));return {lines,more:policy.tables.includes('rvus')?'Click the marker for all 8 codes':'Click the marker for the full table'};}
+export function eventHover(data,state,key){const policy=POLICIES[key];if(!policy)return null;const year=parseInt(key,10),lines=policy.tables.flatMap(t=>t==='rvus'&&!policy.tables.includes('cf')?[...HOVER.rvus(data,year,state),...HOVER.cf(data,year,state)]:HOVER[t](data,year,state));return {lines,more:policy.tables.includes('rvus')?'Click the marker for all 8 codes':'Click the marker for the full table'};}
 export function policyFor(data,state,key){const policy=POLICIES[key];if(!policy)return null;const year=parseInt(key,10);const tables=policy.tables.map(t=>TABLES[t](data,year,state)).filter(Boolean);return {...policy,year,tables};}
 export const POLICY_KEYS=Object.keys(POLICIES);
