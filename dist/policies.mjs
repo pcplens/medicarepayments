@@ -44,5 +44,21 @@ const POLICIES={
  '2027-rate':{title:'2026’s one-time 2.5% increase expires',summary:'The conversion factor drops because 2026’s one-year increase ends. The 2027 update itself is slightly positive.',tables:['cfSteps'],background:['The 2.5% increase applied to 2026 only, by statute. The 2027 update is +0.25% for non-QPs and +0.75% for QPs, with a −0.12% budget-neutrality adjustment.'],url:FR_2027},
  2027:{title:'B1 and B2 replace G2211',summary:'The fixed G2211 add-on is replaced by modifiers worth 16% (B1) or 32% (B2) of the visit’s full fee.',tables:['b1b2'],background:['The CY 2027 final rule sets B1 at 16 percent of the total RVUs of the E/M service on the claim. B2, at 32 percent, is limited to clinicians in MSSP or LEAD ACOs; it does not depend on QP status.'],url:FR_2027},
 };
+// Short hover lines for each table type: the key numbers only. RVU events show the mix-weighted average total RVUs
+// per visit and the two most-used codes; the full tables are in the details panel.
+const topCodes=(state,n)=>[...CODES].filter(c=>state.mix[c]>0).sort((a,b)=>state.mix[b]-state.mix[a]||CODES.indexOf(a)-CODES.indexOf(b)).slice(0,n);
+const pct1=n=>(n>0.0005?'+':n<-0.0005?'−':'')+Math.abs(n*100).toFixed(1)+'%',chg=(a,b)=>a?` (${pct1(b/a-1)})`:'';
+const HOVER={
+ rvus(data,year,state){const tot=(y,c)=>data.rvus.find(r=>r.year===y&&r.code===c).total,avg=y=>CODES.reduce((a,c)=>a+state.mix[c]/100*tot(y,c),0),a=avg(year-1),b=avg(year);return [`Avg total RVUs per visit (selected mix): ${r2(a)} → ${r2(b)}${chg(a,b)}`,...topCodes(state,2).map(c=>`${c}: ${r2(tot(year-1,c))} → ${r2(tot(year,c))}${chg(tot(year-1,c),tot(year,c))}`)];},
+ cf(data,year,state){const t=state.qp&&year>=2026?'qp':'nonqp',a=cfOf(data,year-1,t),b=cfOf(data,year,t);return [`Conversion factor${year>=2026?(t==='qp'?' (QP)':' (non-QP)'):''}: ${usd4(a)} → ${usd4(b)}${chg(a,b)}`];},
+ cfRun(data){const a=cfOf(data,2024,'nonqp'),b=cfOf(data,2025,'nonqp');return [`Conversion factor: ${usd4(a)} → ${usd4(b)}${chg(a,b)}`,`Since 2021: ${pct1(b/cfOf(data,2021,'nonqp')-1)}`];},
+ cfSteps(data,year,state){const t=state.qp?'qp':'nonqp';return [`Conversion factor${t==='qp'?' (QP)':' (non-QP)'}: ${usd4(cfOf(data,2026,t))} → ${usd4(cfOf(data,2027,t))}`,`Without 2026’s 2.5%: ${usd4(CF_2026_WITHOUT_ONE_YEAR_INCREASE[t])}, then the 2027 update`];},
+ cfPeriods(){return ['Conversion factor: $35.7547 → $35.9335 from July 1 (+0.5%)','The SGR’s scheduled 21% cut never took effect'];},
+ seq(data,year){return [{2013:'Cut to the allowed amount: 0% → 1.6% from April 1',2020:'Cut to the allowed amount: 1.6% → 0% from May 1',2022:'Cut to the allowed amount: 0% → 0.8% in April → 1.6% in July'}[year]];},
+ g2211(data,year,state){const c=topCodes(state,1)[0];if(!c)return [];const a=data.annual.find(r=>r.year===year&&r.track==='nonqp'&&r.code===c);return [`${c}: ${usd(a.base_fee)} visit + ${usd(a.complexity_increment)} G2211 (${(a.complexity_increment/a.base_fee*100).toFixed(0)}%)`];},
+ b1b2(data,year,state){const c=topCodes(state,1)[0];if(!c)return [];const t=state.qp?'qp':'nonqp',m=state.program==='aco'?'B2':'B1';return [`${c}: G2211 ${usd(data.annual.find(r=>r.year===2026&&r.track===t&&r.code===c).complexity_increment)} → ${m} ${usd(modifierIncrement(data,t,c,m))}`];},
+ apcm(data,year,state){if(!data.apcm)return [];const c=APCM_CODES.reduce((a,c)=>state.apcm?.[c]>(state.apcm?.[a]??0)?c:a,'G0557');return [`${c}: ${usd(apcmFee(data,c,2025,cfOf(data,2025,'nonqp')))} per patient per month`];},
+};
+export function eventHover(data,state,key){const policy=POLICIES[key];if(!policy)return null;const year=parseInt(key,10),lines=policy.tables.flatMap(t=>HOVER[t](data,year,state));return {lines,more:policy.tables.includes('rvus')?'Click the marker for all 8 codes':'Click the marker for the full table'};}
 export function policyFor(data,state,key){const policy=POLICIES[key];if(!policy)return null;const year=parseInt(key,10);const tables=policy.tables.map(t=>TABLES[t](data,year,state)).filter(Boolean);return {...policy,year,tables};}
 export const POLICY_KEYS=Object.keys(POLICIES);

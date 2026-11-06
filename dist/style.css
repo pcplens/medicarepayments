@@ -189,3 +189,14 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}.shell,main,.workspace>
 .policy-impact .parts li{display:flex;justify-content:space-between;gap:12px;font-weight:400;font-size:12px;padding:2px 0;color:var(--muted)}
 .policy-impact .parts li.mine{color:var(--ink);font-weight:700}
 @media(max-width:480px){.policy-table .narrow-hide{display:none}}
+.event-panel{margin:12px 0 4px;padding:16px 18px;border:1px solid var(--border);border-radius:8px;background:var(--paper);scroll-margin:16px}
+.event-panel[hidden]{display:none}
+.event-panel-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:6px}
+.event-panel-head h3{font-size:18px;line-height:1.3;margin:0}
+.event-panel-head h3:focus{outline:none}
+.event-panel-head h3:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.event-panel .policy-impact{max-width:560px}
+.event-marker.selected::before{width:15px;height:15px;box-shadow:0 0 0 2px #fff,0 0 0 4px var(--ink)}
+.chart-tooltip .tip-line{display:block;margin-top:2px}
+@media(max-width:600px){.event-panel{padding:12px 10px}.event-panel-head h3{font-size:16px}}
+@media(max-width:480px){.policy-table td .from{display:block;font-weight:400;color:var(--muted);font-size:10px}.policy-table td .arr{display:none}.policy-table td{vertical-align:bottom}}

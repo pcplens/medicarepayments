@@ -1,6 +1,6 @@
 import {APCM_CODES,APCM_DATA_VERSION,CODES,YEARS,DATA_VERSION,ENGINE_VERSION,DEFAULT_MIX,defaultState,calculate,balanceMix,modifierFor,changeBreakdown,yearBreakdown,comboState} from './engine.mjs';
 import {defaultView,validYears,monthlySeries,significantEvents,serialize,restore,monthlyCSV,descendingYears,comparisonYears} from './monthly.mjs';
-import {policyFor} from './policies.mjs';
+import {policyFor,eventHover} from './policies.mjs';
 import {drawMonthly} from './charts.mjs';
 const $=id=>document.getElementById(id),money=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(n),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const LABELS=['Established · level 2','Established · level 3','Established · level 4','Established · level 5','New patient · level 2','New patient · level 3','New patient · level 4','New patient · level 5'];
@@ -58,11 +58,13 @@ function renderChart(){
  for(const e of document.querySelectorAll('.chart-dollars'))e.textContent=to;
  $('caveat-shading').hidden=from>1995;
  for(const b of document.querySelectorAll('.event-filter'))b.setAttribute('aria-pressed',String(!hiddenEvents.has(b.dataset.category)));
-  chartApi=drawMonthly($('history-chart'),$('event-buttons'),{points:monthlySeries(result,to),events:events.map(e=>({...e,impact:ownImpact(e)})),onOpen:openEvent,from,to,tooltip:$('chart-tooltip'),hidden:hiddenEvents});
+  if(selectedEvent&&!events.some(e=>e.id===selectedEvent.id&&e.year>from&&e.year<=to&&!hiddenEvents.has(e.category)))closeEvent(false);
+ chartApi=drawMonthly($('history-chart'),$('event-buttons'),{selected:selectedEvent?.id,points:monthlySeries(result,to),events:events.map(e=>({...e,impact:ownImpact(e),hover:eventHover(data,lastState,e.policy)})),onOpen:openEvent,from,to,tooltip:$('chart-tooltip'),hidden:hiddenEvents});
  const inRange=events.filter(e=>e.year>from&&e.year<=to);
  $('event-list-items').innerHTML=inRange.length?inRange.map(e=>`<li><button type="button" class="event-list-item ${e.category}" data-id="${e.id}"><i aria-hidden="true"></i><b>${e.year}</b> ${esc(e.label)}<small>${CATEGORY_NAMES[e.category]} · ${esc(e.detail)}</small></button></li>`).join(''):'<li class="muted">No policy events in this range.</li>';
  for(const b of $('event-list-items').querySelectorAll('button'))b.onclick=()=>openEvent(events.find(e=>e.id===b.dataset.id),b);
  for(const e of document.querySelectorAll('.event-marker,.event-list-item'))e.disabled=!valid;
+ if(selectedEvent){const e=events.find(x=>x.id===selectedEvent.id);selectedEvent=e;fillEvent(e);chartApi.highlight(e);}
 }
 for(const id of ['chart-from','chart-to'])$(id).onchange=()=>{const from=+$('chart-from').value,to=+$('chart-to').value;if(from<to){view.chart={from,to};renderChart();updateURL();expose();announce(`Chart shows ${from} to ${to}.`);}};
 for(const b of document.querySelectorAll('.event-filter'))b.onclick=()=>{const c=b.dataset.category;hiddenEvents.has(c)?hiddenEvents.delete(c):hiddenEvents.add(c);if(points)renderChart();announce(`${CATEGORY_NAMES[c]} events ${hiddenEvents.has(c)?'hidden':'shown'}.`);};
@@ -78,17 +80,30 @@ function renderTable(){
  for(const control of $('comparison-table').querySelectorAll('select,button'))control.disabled=!valid||blocked;
 
 }
+let selectedEvent=null;
+// Clicking a marker (or a list item) shows its details in the panel under the chart; clicking it again closes it.
 function openEvent(event,origin){
- if(!valid||!event)return;const year=event.year,policy=policyFor(data,lastState,event.policy);if(!policy)return;dialogReturn=origin;
+ if(!valid||!event)return;if(selectedEvent?.id===event.id){closeEvent();return;}
+ selectedEvent=event;dialogReturn=origin;if(!fillEvent(event))return;$('event-panel').hidden=false;
+ for(const m of document.querySelectorAll('.event-marker')){const on=m.dataset.id===event.id;m.classList.toggle('selected',on);m.setAttribute('aria-expanded',String(on));}
+ chartApi?.highlight(event);$('event-panel').scrollIntoView({block:'nearest',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});$('event-title').focus({preventScroll:true});
+}
+function closeEvent(restoreFocus=true){
+ if(!selectedEvent)return;const id=selectedEvent.id;selectedEvent=null;$('event-panel').hidden=true;chartApi?.clear();
+ for(const m of document.querySelectorAll('.event-marker')){m.classList.remove('selected');m.setAttribute('aria-expanded','false');}
+ if(restoreFocus)(dialogReturn?.isConnected?dialogReturn:document.querySelector(`.event-marker[data-id="${id}"]`)||$('history-title')).focus({preventScroll:true});
+}
+function fillEvent(event){
+ const year=event.year,policy=policyFor(data,lastState,event.policy);if(!policy)return false;
  $('event-title').textContent=`${year} · ${policy.title}`;
  const now=points.find(p=>p.year===year),before=points.find(p=>p.year===year-1),pc=(a,b)=>b?pctText(a/b-1):'—';
- const hideAt=(t,i)=>t.narrowHide?.includes(i)?' narrow-hide':'',cell=(c,i,t)=>typeof c==='object'?`<td class="${c.changed?'changed':'same'}${hideAt(t,i)}">${esc(c.text)}</td>`:`<td class="${hideAt(t,i).trim()}">${esc(c)}</td>`;
+ const hideAt=(t,i)=>t.narrowHide?.includes(i)?' narrow-hide':'',pair=x=>{const [f,t]=String(x).split(' → ');return t===undefined?esc(x):`<span class="from">${esc(f)}</span><span class="arr"> → </span><span class="to">${esc(t)}</span>`;},cell=(c,i,t)=>typeof c==='object'?`<td class="${c.changed?'changed':'same'}${hideAt(t,i)}">${pair(c.text)}</td>`:`<td class="${hideAt(t,i).trim()}">${pair(c)}</td>`;
  const tables=policy.tables.map(t=>`<div class="policy-table"><table><caption>${esc(t.caption)}</caption><thead><tr>${t.head.map((h,i)=>{const [long,short]=h.split('|');return `<th scope="col" class="${hideAt(t,i).trim()}">${short?`<span class="long">${esc(long)}</span><abbr class="short" title="${esc(long)}">${esc(short)}</abbr>`:esc(long)}</th>`;}).join('')}</tr></thead><tbody>${t.rows.map(r=>`<tr><th scope="row">${r[0]}</th>${r.slice(1).map((c,i)=>cell(c,i+1,t)).join('')}</tr>`).join('')}</tbody></table>${t.note?`<p class="hint">${esc(t.note)}</p>`:''}</div>`).join('');
  const own=ownImpact(event),yb=yearBreakdown(data,lastState,year,result),moved=yb?Object.entries(yb.parts).filter(([k,v])=>Math.abs(v)>=.5):[];
  $('event-content').innerHTML=`<p class="policy-summary">${esc(policy.summary)}</p><h3 class="policy-h">What changed</h3>${tables}<div class="policy-impact"><h3>Monthly payment, ${year-1} → ${year}</h3><dl>${own!==undefined?`<div class="own"><dt>This change</dt><dd>${signed(own)}</dd></div>`:''}${moved.length>1?`<div class="parts"><dt>Everything that moved it</dt><dd><ul>${moved.map(([k,v])=>`<li class="${event.parts?.includes(k)?'mine':''}"><span>${PART_LABELS[k]}</span><span>${signed(v)}</span></li>`).join('')}</ul></dd></div>`:''}<div><dt>Total, that year’s dollars</dt><dd>${money(before.nominal)} → ${money(now.nominal)} <small>${pc(now.nominal,before.nominal)}</small></dd></div><div><dt>In 2027 dollars (MEI)</dt><dd>${money(before.MEI)} → ${money(now.MEI)} <small>${pc(now.MEI,before.MEI)}</small></dd></div></dl><p class="hint">Same visits and mix in both years, after sequestration.</p></div>${policy.background?.length?`<details class="disclosure policy-background"><summary>Background</summary>${policy.background.map(b=>`<p>${esc(b)}</p>`).join('')}</details>`:''}<p class="policy-source"><a href="${esc(policy.url)}" target="_blank" rel="noopener">Policy source ↗</a></p>`;
- document.body.classList.add('modal-open');$('event-dialog').showModal();chartApi?.highlight(event);
+ return true;
 }
-$('close-event').onclick=()=>$('event-dialog').close();$('event-dialog').addEventListener('close',()=>{document.body.classList.remove('modal-open');chartApi?.clear();return (dialogReturn?.isConnected?dialogReturn:document.querySelector(`.event-marker[data-id="${dialogReturn?.dataset.id}"]`)||$('history-title')).focus({preventScroll:true});});$('event-dialog').onclick=e=>{if(e.target===$('event-dialog')){const r=e.target.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)e.target.close();}};
+$('close-event').onclick=()=>closeEvent();document.addEventListener('keydown',e=>{if(e.key==='Escape'&&selectedEvent&&!$('event-panel').hidden)closeEvent();});
 function changed(){read();$('share-status').textContent='';$('export-status').textContent='';$('share-fallback').hidden=true;render();}
 for(const e of document.querySelectorAll('#track-panel input[type=radio]'))e.onchange=()=>{const v=e.value;if(e.name==='program'){state.program=v;state.track=v==='aco'?(state.track??'basic-ad'):null;if(v==='none')state.qp=false;}else if(e.name==='track')state.track=v;else state.qp=v==='yes';syncTrack();changed();};for(const id of ['visits','days',...CODES.map(c=>'mix-'+c)])$(id).oninput=()=>changed();for(const c of APCM_CODES)$('apcm-'+c).oninput=()=>changed();for(const id of ['complexity','complexity-number'])$(id).oninput=()=>{state.complexity=$(id).value===''?NaN:Number($(id).value);if(Number.isFinite(state.complexity))$(id==='complexity'?'complexity-number':'complexity').value=state.complexity;changed();};
 $('balance').onclick=()=>{read();state.mix=balanceMix(state.mix);for(const c of CODES)$('mix-'+c).value=state.mix[c];changed();};for(const b of document.querySelectorAll('[data-preset]'))b.onclick=()=>{state.mix=b.dataset.preset==='simple'?Object.fromEntries(CODES.map(c=>[c,c==='99214'?70:c==='99213'?30:0])):{...DEFAULT_MIX};for(const c of CODES)$('mix-'+c).value=state.mix[c];changed();};
