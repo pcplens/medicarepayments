@@ -160,3 +160,5 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}.shell,main,.workspace>
 .event-list-item{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:8px 0;font-size:12px;color:var(--ink);cursor:pointer}
 .event-list-item small{flex-basis:100%;color:var(--muted);font-size:11px;padding-left:16px}
 .event-list-item:hover b{text-decoration:underline}
+.chart-legend{margin-top:10px;padding-top:12px;border-top:1px solid var(--line)}
+.chart-legend .history-key{margin-top:0}
